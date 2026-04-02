@@ -65,11 +65,14 @@ const renderFetchMovieItem = async ($target, page, query) => {
   try {
     $target.insertAdjacentHTML("beforeend", renderSkellMovieItem());
     let data;
-    if (query) ;
-    else {
+    if (query) {
+      data = await fetchSearchMovies(query, page);
+    } else {
       data = await fetchPopularMovies(page);
     }
-    if (query && data.results.length === 0) ;
+    if (query && data.results.length === 0) {
+      $target.innerHTML = renderErrorpage(query);
+    }
     removeSkeleton($target);
     if (page === 1 && !query && data.results.length > 0) {
       updateHeroBanner(data.results[0]);
@@ -146,24 +149,6 @@ const updateHeroBanner = (movie) => {
   const $rate = document.querySelector(".top-rated-movie .rate-value");
   if ($rate) $rate.textContent = movie.vote_average.toFixed(1);
 };
-addEventListener("load", () => {
-  const app = document.querySelector("#app");
-  if (app) {
-    init();
-  }
-});
-function init() {
-  let currentPage = 1;
-  const $thumbnailList = document.querySelector(".thumbnail-list");
-  if ($thumbnailList) {
-    renderFetchMovieItem($thumbnailList, currentPage);
-  }
-  const $button = document.querySelector("#more-page-button");
-  $button?.addEventListener("click", () => {
-    currentPage++;
-    if ($thumbnailList) {
-      $button?.classList.add("hidden");
-      renderFetchMovieItem($thumbnailList, currentPage);
-    }
-  });
-}
+export {
+  renderFetchMovieItem as r
+};

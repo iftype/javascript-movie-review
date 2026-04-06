@@ -431,13 +431,13 @@ const router = () => {
   const $app = document.querySelector("#app");
   if (!$app) return;
   $app.innerHTML = "";
-  const match = routes.find((route) => route.path === location.pathname);
+  const hashPath = location.hash.replace("#", "") || "/";
+  const match = routes.find((route) => route.path === hashPath);
   const View = match ? match.view : HomePage;
   new View($app).init();
 };
 const navigateTo = (url) => {
-  history.pushState(null, "", url);
-  router();
+  location.hash = url;
 };
 window.addEventListener(ROUTE_CHANGE_EVENT, (e) => {
   const customEvent = e;
@@ -445,6 +445,6 @@ window.addEventListener(ROUTE_CHANGE_EVENT, (e) => {
   navigateTo(url);
 });
 addEventListener("load", () => {
-  window.addEventListener("popstate", router);
+  window.addEventListener("hashchange", router);
   router();
 });

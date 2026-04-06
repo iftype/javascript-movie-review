@@ -49,8 +49,8 @@ const $ = (el, selector) => {
 };
 const Logo = () => {
   const tempalte = `
-    <a href="/">
-      <img src="/images/logo.png" alt="MovieList" />
+    <a href="/javascript-movie-review">
+      <img src="./images/logo.png" alt="MovieList" />
     </a>
   `;
   const $h1 = document.createElement("h1");
@@ -161,7 +161,7 @@ const MovieItem = (data) => {
   const $img = $($li, ".thumbnail");
   $img.src = getThumbnailImageUrl(poster_path);
   $img.onerror = () => {
-    $img.src = "/images/empty.png";
+    $img.src = "./images/empty.png";
   };
   $($li, ".item-desc strong").textContent = title;
   $($li, ".rate span").textContent = vote_average.toFixed(1);
@@ -252,7 +252,7 @@ class Footer {
     this.#$element.className = "footer";
     this.#$element.innerHTML = `
       <p>&copy; 우아한테크코스 All Rights Reserved.</p>
-      <p><img src="/images/woowacourse_logo.png" width="180" /></p>
+      <p><img src="./images/woowacourse_logo.png" width="180" /></p>
     `;
   }
   get $element() {

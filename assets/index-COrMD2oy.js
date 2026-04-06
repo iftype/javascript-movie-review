@@ -306,20 +306,29 @@ const dispatchRouteChange = (url) => {
   window.dispatchEvent(new CustomEvent(ROUTE_CHANGE_EVENT, { detail: { url } }));
 };
 class HomePage {
-  #$target;
+  #$fragment;
   #page = 1;
+  #header;
   #main;
-  constructor($target) {
-    this.#$target = $target;
-    this.#main = new Main("");
-  }
-  async init() {
-    const header = new TopRateHeader(this.#onSubmit);
+  #footer;
+  constructor() {
+    this.#$fragment = document.createDocumentFragment();
+    this.#header = new TopRateHeader(this.#onSubmit);
     this.#main = new Main("지금 인기있는 영화");
-    const footer = new Footer();
-    this.#$target.append(header.$element, this.#main.$element, footer.$element);
-    const response = await this.#appendMovies();
-    header.render(response.results[0]);
+    this.#footer = new Footer();
+    this.#$fragment.append(this.#header.$element, this.#main.$element, this.#footer.$element);
+    this.#initialFetch();
+  }
+  get $element() {
+    return this.#$fragment;
+  }
+  async #initialFetch() {
+    try {
+      const response = await this.#appendMovies();
+      this.#header.render(response.results[0]);
+    } catch (error) {
+      this.#handleError(error);
+    }
   }
   async #loadMore() {
     this.#main.removeMoreButton();
@@ -336,15 +345,22 @@ class HomePage {
       }
       return response;
     } catch (error) {
-      if (error instanceof TMDBError) {
-        this.#main.renderError("TMDB에러입니다 " + error.message);
-        throw error;
-      }
-      this.#main.renderError("알수없는 에러입니다\n" + error.message);
+      this.#handleError(error);
       throw error;
     } finally {
       this.#main.removeSkeletons();
     }
+  }
+  #handleError(error) {
+    if (error instanceof TMDBError) {
+      this.#main.renderError(`TMDB 에러: ${error.message}`);
+      return;
+    }
+    if (error instanceof Error) {
+      this.#main.renderError(`시스템 에러: ${error.message}`);
+      return;
+    }
+    this.#main.renderError("알 수 없는 에러가 발생했습니다.");
   }
   #onSubmit = (query) => {
     if (query.trim()) {
@@ -368,25 +384,32 @@ class SearchHeader {
   }
 }
 class SearchPage {
-  #$target;
+  #$fragment;
   #page = 1;
   #main;
-  constructor($target) {
-    this.#$target = $target;
-    this.#main = new Main("");
+  constructor() {
+    this.#$fragment = document.createDocumentFragment();
+    const query = this.#getQuery();
+    const header = new SearchHeader(this.#onSubmit);
+    this.#main = new Main(`"${query}" 검색 결과`);
+    const footer = new Footer();
+    this.#$fragment.append(header.$element, this.#main.$element, footer.$element);
+    this.#initialFetch();
   }
-  getQuery() {
+  get $element() {
+    return this.#$fragment;
+  }
+  #getQuery() {
     const [, queryString = ""] = window.location.hash.split("?");
     const urlParams = new URLSearchParams(queryString);
-    const query = urlParams.get("query");
-    return query ?? "";
+    return urlParams.get("query") ?? "";
   }
-  async init() {
-    const header = new SearchHeader(this.#onSubmit);
-    this.#main = new Main(`"${this.getQuery()}" 검색 결과`);
-    const footer = new Footer();
-    this.#$target.append(header.$element, this.#main.$element, footer.$element);
-    await this.#appendMovies();
+  async #initialFetch() {
+    try {
+      await this.#appendMovies();
+    } catch (error) {
+      console.error("Search fetch failed:", error);
+    }
   }
   async #loadMore() {
     this.#main.removeMoreButton();
@@ -396,7 +419,7 @@ class SearchPage {
   async #appendMovies() {
     this.#main.renderSkeletons();
     try {
-      const response = await fetchSearchMovies(this.getQuery(), this.#page);
+      const response = await fetchSearchMovies(this.#getQuery(), this.#page);
       if (response.results.length === 0) {
         this.#main.renderNothing();
         return response;
@@ -407,15 +430,22 @@ class SearchPage {
       }
       return response;
     } catch (error) {
-      if (error instanceof TMDBError) {
-        this.#main.renderError("TMDB에러입니다\n" + error.message);
-        throw error;
-      }
-      this.#main.renderError("알수없는 에러입니다\n" + error.message);
+      this.#handleError(error);
       throw error;
     } finally {
       this.#main.removeSkeletons();
     }
+  }
+  #handleError(error) {
+    if (error instanceof TMDBError) {
+      this.#main.renderError(`TMDB 에러: ${error.message}`);
+      return;
+    }
+    if (error instanceof Error) {
+      this.#main.renderError(`시스템 에러: ${error.message}`);
+      return;
+    }
+    this.#main.renderError("알 수 없는 에러가 발생했습니다.");
   }
   #onSubmit = (query) => {
     if (query.trim()) {
@@ -435,7 +465,8 @@ const router = () => {
   const [path, queryString] = fullHash.split("?");
   const match = routes.find((route) => route.path === path);
   const View = match ? match.view : HomePage;
-  new View($app).init();
+  const page = new View();
+  $app.replaceChildren(page.$element);
 };
 const navigateTo = (url) => {
   location.hash = url;

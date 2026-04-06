@@ -49,7 +49,7 @@ const $ = (el, selector) => {
 };
 const Logo = () => {
   const tempalte = `
-    <a href="/javascript-movie-review">
+    <a href="#/">
       <img src="./images/logo.png" alt="MovieList" />
     </a>
   `;
@@ -376,7 +376,7 @@ class SearchPage {
     this.#main = new Main("");
   }
   getQuery() {
-    const queryString = window.location.search;
+    const [, queryString = ""] = window.location.hash.split("?");
     const urlParams = new URLSearchParams(queryString);
     const query = urlParams.get("query");
     return query ?? "";

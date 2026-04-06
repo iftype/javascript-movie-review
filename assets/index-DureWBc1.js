@@ -431,8 +431,9 @@ const router = () => {
   const $app = document.querySelector("#app");
   if (!$app) return;
   $app.innerHTML = "";
-  const hashPath = location.hash.replace("#", "") || "/";
-  const match = routes.find((route) => route.path === hashPath);
+  const fullHash = location.hash.replace("#", "") || "/";
+  const [path, queryString] = fullHash.split("?");
+  const match = routes.find((route) => route.path === path);
   const View = match ? match.view : HomePage;
   new View($app).init();
 };

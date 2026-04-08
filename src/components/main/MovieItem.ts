@@ -5,7 +5,7 @@ import { MovieData } from '../../api/types.ts';
 
 export const MovieItem = (data: MovieData) => {
   const { title, poster_path, vote_average } = data;
-
+  console.log(vote_average);
   const $li = document.createElement('li');
 
   $li.innerHTML = `
@@ -28,7 +28,7 @@ export const MovieItem = (data: MovieData) => {
   };
 
   $($li, '.item-desc strong').textContent = title;
-  $($li, '.rate span').textContent = vote_average.toFixed(1);
+  $($li, 'span').textContent = vote_average ? vote_average.toFixed(1) : '평가 중';
   $($li, '.rate').prepend(Star());
 
   return $li;

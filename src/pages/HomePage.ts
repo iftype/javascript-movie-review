@@ -36,6 +36,7 @@ export default class HomePage {
       this.#header.render(response.results[0]);
     } catch (error) {
       this.#handleError(error);
+      throw error;
     }
   }
 

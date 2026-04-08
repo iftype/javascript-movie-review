@@ -99,12 +99,14 @@ const TopRate = (data) => {
   $container.innerHTML = `
     <div class="title"></div>
     <div class="rate">
-      <span class="rate-value">${data.vote_average.toFixed(1)}</span>
+      <span class="rate-value"></span>
     </div>
     <button class="primary detail">자세히 보기</button>
   `;
   $($container, ".rate").prepend(Star());
   $($container, ".title").textContent = data.title;
+  const { vote_average } = data;
+  $($container, ".rate-value").textContent = vote_average ? vote_average.toFixed(1) : "평가 중";
   return $container;
 };
 class TopRateHeader {
@@ -146,6 +148,7 @@ const MoreButton = (onClick) => {
 };
 const MovieItem = (data) => {
   const { title, poster_path, vote_average } = data;
+  console.log(vote_average);
   const $li = document.createElement("li");
   $li.innerHTML = `
     <div class="item">
@@ -164,7 +167,7 @@ const MovieItem = (data) => {
     $img.src = "./images/empty.png";
   };
   $($li, ".item-desc strong").textContent = title;
-  $($li, ".rate span").textContent = vote_average.toFixed(1);
+  $($li, "span").textContent = vote_average ? vote_average.toFixed(1) : "평가 중";
   $($li, ".rate").prepend(Star());
   return $li;
 };
@@ -328,6 +331,7 @@ class HomePage {
       this.#header.render(response.results[0]);
     } catch (error) {
       this.#handleError(error);
+      throw error;
     }
   }
   async #loadMore() {

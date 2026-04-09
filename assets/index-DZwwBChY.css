@@ -215,9 +215,12 @@ button.primary {
   margin: 0 auto;
 }
 
-.background-container {
+.background-container,
+.top-header-container {
+  width: 100%;
+  height: 100%;
   position: relative;
-  background-position: center center;
+  background-position: center;
   background-size: cover;
   padding: 48px;
 }
@@ -233,18 +236,24 @@ button.primary {
   z-index: 1;
 }
 
-.top-rated-container {
+.top-rated-container,
+.search-container {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
 
   user-select: none;
   position: relative;
   z-index: 2;
   max-width: 1280px;
   margin: 0 auto;
+  grid-template-columns: 1fr 1fr 1fr;
 }
 
-.top-rated-container .search-form {
+.top-header-container {
+  min-height: 500px;
+}
+
+.top-rated-container .search-form,
+.search-container .search-form {
   justify-self: center;
 }
 
@@ -258,6 +267,7 @@ button.primary {
 
 h1.logo {
   font-size: 2rem;
+  width: 175px;
 }
 
 .rate {
@@ -424,8 +434,38 @@ form {
   margin: 20px;
 }
 
-.top-header-container {
-  min-height: 500px;
+@media (max-width: 800px) {
+  .search-wrap {
+    width: 325px;
+    height: 36px;
+  }
+
+  h1.logo {
+    width: 100%;
+    text-align: center;
+  }
+
+  section h2 {
+    text-align: center;
+  }
+
+  .top-header-container {
+    min-height: 300px;
+    width: 100%;
+  }
+  .top-rated-container,
+  .search-container {
+    display: flex;
+    flex-direction: column;
+    justify-items: center;
+    align-items: center;
+  }
+}
+
+@media (max-width: 390px) {
+  .search-wrap {
+    width: 200px;
+  }
 }
 :root {
   --color-white: #ffffff;
@@ -486,14 +526,17 @@ form {
 }
 
 .thumbnail-list {
-  margin: 0 auto 56px;
   display: grid;
-  grid-template-columns: repeat(5, 200px);
-  gap: 70px;
+  justify-content: center;
+
+  width: 100%;
+  margin: 0 auto 56px;
+  grid-template-columns: repeat(auto-fit, 200px);
+  gap: 40px;
 }
 
 .thumbnail {
-  width: 200px;
+  width: 100%;
   height: 300px;
   border-radius: 8px;
 }
@@ -522,4 +565,191 @@ p.rate > span {
 .item .star {
   width: 16px;
   top: 1px;
+}
+:root {
+  --color-white: #ffffff;
+  --color-lightblue-90: #0da9fd;
+  --color-bluegray-100: #242a32;
+  --color-bluegray-80: #39414d;
+  --color-bluegray-10: #e0e6ed;
+  --color-bluegray-30: #a6b1c3;
+  --color-bluegray-90: #2f3844;
+  --color-gray-300: #d1d3d4;
+  --color-yellow: #ffc700;
+  --color-ffffff: #ffffff;
+  --color-242a32: #242a32;
+}
+
+/* modal.css */
+
+body.modal-open {
+  overflow: hidden;
+}
+
+.modal-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* 반투명 배경을 위해 설정 */
+  backdrop-filter: blur(10px); /* 블러 효과 적용 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
+  visibility: hidden; /* 모달이 기본적으로 보이지 않도록 설정 */
+  opacity: 0;
+  transition:
+    opacity 0.3s ease,
+    visibility 0.3s ease;
+}
+
+.modal-background.active {
+  visibility: visible;
+  opacity: 1;
+}
+
+.modal {
+  background-color: var(--color-bluegray-90);
+  padding: 20px;
+  border-radius: 16px;
+  color: white;
+  z-index: 2;
+  position: relative;
+  width: 1000px;
+}
+
+.close-modal {
+  position: absolute;
+  margin: 0;
+  padding: 0;
+  top: 24px;
+  right: 24px;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.modal-container {
+  display: flex;
+}
+
+.modal-image img {
+  width: 380px;
+  border-radius: 16px;
+}
+
+.modal-description {
+  width: 100%;
+  padding: 8px;
+  margin-left: 16px;
+  line-height: 1.6rem;
+}
+
+.modal-description .rate > img {
+  position: relative;
+  top: 5px;
+}
+
+.modal-description > *:not(:last-child) {
+  margin-bottom: 8px;
+}
+
+.modal-description h2 {
+  font-size: 2rem;
+  margin: 0 0 8px;
+}
+
+.detail {
+  max-height: 430px;
+  overflow-y: auto;
+}
+
+.average-info {
+  color: var(--color-white);
+  margin-right: 4px;
+}
+
+.submit-rate-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.submit-star-button {
+  border: 0;
+  background-color: transparent;
+  margin: 0;
+  padding: 0;
+}
+
+@media (max-width: 800px) {
+  .modal-background {
+    align-items: flex-end;
+  }
+
+  .modal {
+    border-radius: 0;
+    bottom: 0;
+    width: 800px;
+  }
+
+  .modal-image img {
+    width: 200px;
+    height: 295px;
+    border-radius: 16px;
+  }
+  .modal-container {
+    padding: 40 24;
+    gap: 10px;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .modal-description h2 {
+    font-size: 32px;
+  }
+}
+
+@media (max-width: 390px) {
+  .modal {
+    top: 20px;
+    border-radius: 0;
+    bottom: 0;
+    width: 800px;
+    height: 749px;
+    width: 390;
+    gap: 24px;
+
+    opacity: 1;
+    padding: 40px 24px;
+    border-radius: 16px;
+  }
+
+  .modal-image img {
+    display: none;
+  }
+  .rate {
+    text-align: center;
+  }
+  .modal-description > div > h3 {
+    text-align: center;
+  }
+  .modal-submit-star,
+  .submit-rate-container,
+  .modal-description {
+    display: flex;
+    justify-items: center;
+    align-items: center;
+    flex-direction: column;
+  }
+
+  hr {
+    width: 100%;
+  }
 }

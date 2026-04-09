@@ -34,7 +34,8 @@ const URL = {
 };
 const PATH = {
   MOVIE_POPULAR: "/movie/popular",
-  SEARCH_MOVIE: "/search/movie"
+  SEARCH_MOVIE: "/search/movie",
+  MOVIE_DETAIL: (movie_id) => `/movie/${movie_id}`
 };
 const getOriginalImageUrl = (src) => {
   return URL.ORIGINAL_IMAGE + src;
@@ -42,11 +43,144 @@ const getOriginalImageUrl = (src) => {
 const getThumbnailImageUrl = (src) => {
   return URL.THUMBNAIL_IMAGE + src;
 };
+class LocalStorage {
+  #myStorage;
+  constructor() {
+    this.#myStorage = window.localStorage;
+  }
+  saveRate(key, value) {
+    this.#myStorage.setItem(key, value);
+  }
+  getRate(key) {
+    return this.#myStorage.getItem(key);
+  }
+}
+const localStorage = new LocalStorage();
 const $ = (el, selector) => {
   const found = el.querySelector(selector);
   if (!found) throw new Error(`${selector} 없음`);
   return found;
 };
+const Star = (filled) => {
+  const $img = document.createElement("img");
+  $img.className = "star";
+  $img.src = filled ? "./images/star_filled.png" : "./images/star_empty.png";
+  $img.alt = filled ? "star_filled" : "star_empty";
+  return $img;
+};
+const POINTS = ["최악이예요", "별로예요", "보통이에요", "재미있어요", "명작이에요"];
+class SubmitRate {
+  #$submiteRateContainer;
+  #$starContanier;
+  #$rateText;
+  #onSubmitRate;
+  constructor(rate, onSubmitRate) {
+    this.#onSubmitRate = onSubmitRate;
+    this.#$submiteRateContainer = document.createElement("div");
+    this.#$submiteRateContainer.className = "submit-rate-container";
+    this.#$starContanier = document.createElement("div");
+    this.#$starContanier.className = "star-container";
+    const $rateTextContainer = document.createElement("div");
+    this.#$rateText = document.createElement("p");
+    $rateTextContainer.append(this.#$rateText);
+    this.#$submiteRateContainer.append(this.#$starContanier);
+    this.#$submiteRateContainer.append($rateTextContainer);
+    this.#renderStar(rate);
+  }
+  get $element() {
+    return this.#$submiteRateContainer;
+  }
+  #renderStar = (rate = 0) => {
+    this.#$starContanier.innerHTML = "";
+    const rateText = rate !== 0 ? `${POINTS[rate / 2 - 1]} ${rate}/10` : "별점을 입력해주세요";
+    this.#$rateText.textContent = rateText;
+    POINTS.forEach((point, index) => {
+      const score = (index + 1) * 2;
+      const $button = document.createElement("button");
+      $button.className = "submit-star-button";
+      $button.append(Star(score <= rate));
+      $button.addEventListener("click", () => {
+        this.#$rateText.textContent = point;
+        this.#onSubmitRate(score);
+        this.#renderStar(score);
+      });
+      this.#$starContanier.append($button);
+    });
+  };
+}
+class Modal {
+  #$modal;
+  #$body;
+  constructor($body) {
+    this.#$body = $body;
+    this.#$modal = document.createElement("div");
+    this.#$modal.id = "modalBackground";
+    this.#$modal.className = "modal-background";
+    this.#$modal.innerHTML = /*html */
+    `
+      <div class="modal">
+        <button class="close-modal" id="closeModal">
+          <img src="./images/modal_button_close.png" />
+        </button>
+        <div class="modal-container">
+          <div class="modal-image"><img /></div>
+          <div class="modal-description">
+            <h2></h2>
+            <p class="category"></p>
+            <div class="rate"></div>
+            <hr />
+            <div class="modal-submit-star">
+              <h3>내 별점</h3>
+            </div>
+            <hr />
+            <div>
+              <h3>줄거리</h3>
+              <p class="detail"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    $(this.#$modal, "button").addEventListener("click", () => this.close());
+  }
+  get $element() {
+    return this.#$modal;
+  }
+  #update(movie) {
+    const { title, release_date, overview, poster_path, genres, vote_average } = movie;
+    $(this.#$modal, ".modal-image img").src = getOriginalImageUrl(poster_path);
+    $(this.#$modal, "h2").textContent = title;
+    $(this.#$modal, ".detail").textContent = overview;
+    const releaseYear = new Date(release_date).getFullYear();
+    const category = genres.map((g) => g.name).join(" ");
+    $(this.#$modal, ".category").textContent = `${releaseYear} · ${category}`;
+    const $rateContainer = $(this.#$modal, ".rate");
+    $rateContainer.innerHTML = "";
+    const $starIcon = Star(true);
+    const $score = document.createElement("span");
+    $score.textContent = `평균 ${Number(vote_average).toFixed(1)}`;
+    $rateContainer.append($starIcon, $score);
+  }
+  open(movie) {
+    this.#$body.className = "modal-open";
+    this.#$modal.classList.add("active");
+    this.#update(movie);
+    const { id } = movie;
+    const movieRate = Number(localStorage.getRate(`${id}`)) || 0;
+    const $submitRate = new SubmitRate(movieRate, (rate) => {
+      localStorage.saveRate(`${id}`, String(rate));
+    }).$element;
+    const $container = $(this.#$modal, ".modal-submit-star");
+    const $oldCon = $container.querySelector(".submit-rate-container");
+    if ($oldCon) $oldCon.remove();
+    $container.append($submitRate);
+  }
+  close() {
+    console.log("object");
+    this.#$body.classList.remove("modal-open");
+    this.#$modal.classList.remove("active");
+  }
+}
 const Logo = () => {
   const tempalte = `
     <a href="#/">
@@ -81,32 +215,25 @@ const SearchForm = (onSubmit) => {
   `;
   $form.addEventListener("submit", (e) => {
     e.preventDefault();
-    const query = $($form, "#search-input").value;
+    const $input = $($form, "#search-input");
+    const query = $input.value;
     onSubmit(query);
+    $input.value = "";
   });
   return $form;
-};
-const Star = () => {
-  const $img = document.createElement("img");
-  $img.className = "star";
-  $img.src = "./images/star_empty.png";
-  $img.alt = "star_empty";
-  return $img;
 };
 const TopRate = (data) => {
   const $container = document.createElement("div");
   $container.className = "top-rated-movie";
   $container.innerHTML = `
-    <div class="title"></div>
     <div class="rate">
-      <span class="rate-value"></span>
+      <span class="rate-value">${data.vote_average.toFixed(1)}</span>
     </div>
+    <div class="title"></div>
     <button class="primary detail">자세히 보기</button>
   `;
   $($container, ".rate").prepend(Star());
   $($container, ".title").textContent = data.title;
-  const { vote_average } = data;
-  $($container, ".rate-value").textContent = vote_average ? vote_average.toFixed(1) : "평가 중";
   return $container;
 };
 class TopRateHeader {
@@ -139,17 +266,10 @@ const Error$1 = (message = "에러가 났습니다") => {
   `;
   return $div;
 };
-const MoreButton = (onClick) => {
-  const $button = document.createElement("button");
-  $button.className = "more-button";
-  $button.textContent = "더 보기";
-  $button.addEventListener("click", onClick);
-  return $button;
-};
 const MovieItem = (data) => {
-  const { title, poster_path, vote_average } = data;
-  console.log(vote_average);
+  const { id, title, poster_path, vote_average } = data;
   const $li = document.createElement("li");
+  $li.dataset.id = String(id);
   $li.innerHTML = `
     <div class="item">
       <img class="thumbnail" alt="" />
@@ -167,7 +287,7 @@ const MovieItem = (data) => {
     $img.src = "./images/empty.png";
   };
   $($li, ".item-desc strong").textContent = title;
-  $($li, "span").textContent = vote_average ? vote_average.toFixed(1) : "평가 중";
+  $($li, ".rate span").textContent = vote_average.toFixed(1);
   $($li, ".rate").prepend(Star());
   return $li;
 };
@@ -195,9 +315,9 @@ const NothingResult = () => {
 class Main {
   #$element;
   #$list;
-  #$skeletons = [];
-  #$moreButton;
-  constructor(title) {
+  #$skeletons;
+  constructor(title, onDetail) {
+    this.#$skeletons = /* @__PURE__ */ new Map();
     this.#$element = document.createElement("div");
     this.#$element.className = "container";
     this.#$element.innerHTML = `
@@ -209,32 +329,36 @@ class Main {
       </main>
     `;
     this.#$list = $(this.#$element, ".thumbnail-list");
-    this.#$moreButton = null;
+    const $ul = $(this.#$element, "ul");
+    $ul.addEventListener("click", (e) => {
+      const $li = e.target.closest("li");
+      const id = $li?.dataset.id;
+      onDetail(Number(id));
+    });
   }
   get $element() {
     return this.#$element;
   }
-  renderMovies(movies) {
-    this.removeSkeletons();
+  renderMovies(movies, page) {
+    this.removeSkeletons(page);
     const $fragment = new DocumentFragment();
     movies.forEach((movie) => $fragment.append(MovieItem(movie)));
     this.#$list.append($fragment);
   }
-  renderSkeletons(length = 20) {
-    this.#$skeletons = Array.from({ length }, () => MovieItemSkeleton());
-    this.#$skeletons.forEach(($skeleton) => this.#$list.append($skeleton));
+  renderSkeletons(page, length = 20) {
+    if (this.#$skeletons.has(String(page))) {
+      this.removeSkeletons(page);
+    }
+    const $newSkeletons = Array.from({ length }, () => MovieItemSkeleton());
+    $newSkeletons.forEach(($skeleton) => this.#$list.append($skeleton));
+    this.#$skeletons.set(String(page), $newSkeletons);
   }
-  removeSkeletons() {
-    this.#$skeletons.forEach(($skeleton) => $skeleton.remove());
-    this.#$skeletons = [];
-  }
-  renderMoreButton(onClick) {
-    this.#$moreButton = MoreButton(onClick);
-    $(this.#$element, "section").append(this.#$moreButton);
-  }
-  removeMoreButton() {
-    this.#$moreButton?.remove();
-    this.#$moreButton = null;
+  removeSkeletons(page) {
+    if (!this.#$skeletons.has(String(page))) {
+      return;
+    }
+    const $skeletonList = this.#$skeletons.get(String(page));
+    $skeletonList?.forEach(($skeleton) => $skeleton.remove());
   }
   renderError(messsage) {
     const $element = $(this.#$element, "section");
@@ -282,9 +406,11 @@ const options = {
 const fetchAPI = async (req) => {
   const url = URL.BASE + req.path;
   const { query, page } = req.params;
-  const params = new URLSearchParams({ language: "ko-KR", page: String(page), region: "kr" });
+  const params = new URLSearchParams({ language: "ko-KR", region: "kr" });
   if (query) params.set("query", query);
+  if (page) params.set("page", String(page));
   const resultUrl = url + "?" + params.toString();
+  console.log(resultUrl);
   const response = await fetch(resultUrl, options);
   const data = await response.json();
   if (!response.ok) {
@@ -304,55 +430,89 @@ const fetchPopularMovies = (page = 1) => {
     params: { page }
   });
 };
-const ROUTE_CHANGE_EVENT = "ROUTE_CHANGE";
+const fetchMovieDetails = (movie_id) => {
+  return fetchAPI({
+    path: PATH.MOVIE_DETAIL(movie_id),
+    params: {}
+  });
+};
+const CUSTOM_EVENT = {
+  ROUTE_CHANGE: "ROUTE_CHANGE",
+  SCROOL_END: "SCROOL_END"
+};
 const dispatchRouteChange = (url) => {
-  window.dispatchEvent(new CustomEvent(ROUTE_CHANGE_EVENT, { detail: { url } }));
+  window.dispatchEvent(new CustomEvent(CUSTOM_EVENT.ROUTE_CHANGE, { detail: { url } }));
+};
+const throttle = {
+  delay: 300,
+  timer: null
+};
+const scrollEvent = () => {
+  if (throttle.timer) return;
+  throttle.timer = setTimeout(() => {
+    window.dispatchEvent(new CustomEvent(CUSTOM_EVENT.SCROOL_END));
+    throttle.timer = null;
+  }, throttle.delay);
 };
 class HomePage {
-  #$fragment;
-  #page = 1;
+  #$div;
+  #page;
+  #totalPage;
   #header;
   #main;
   #footer;
-  constructor() {
-    this.#$fragment = document.createDocumentFragment();
+  #$modal;
+  #isLoading;
+  constructor(modal) {
+    this.#$modal = modal;
+    this.#isLoading = false;
+    this.#totalPage = 1;
+    this.#page = 1;
+    this.#$div = document.createElement("div");
+    this.#$div.id = "homepage";
     this.#header = new TopRateHeader(this.#onSubmit);
-    this.#main = new Main("지금 인기있는 영화");
+    this.#main = new Main("지금 인기있는 영화", this.#onDetail);
     this.#footer = new Footer();
-    this.#$fragment.append(this.#header.$element, this.#main.$element, this.#footer.$element);
+    this.#$div.append(this.#header.$element, this.#main.$element, this.#footer.$element);
+    window.addEventListener(CUSTOM_EVENT.SCROOL_END, () => {
+      const isPage = window.document.querySelector("#homepage");
+      if (isPage) this.#loadMore();
+    });
     this.#initialFetch();
   }
   get $element() {
-    return this.#$fragment;
+    return this.#$div;
   }
   async #initialFetch() {
     try {
       const response = await this.#appendMovies();
-      this.#header.render(response.results[0]);
+      if (response) {
+        this.#header.render(response.results[0]);
+      }
     } catch (error) {
       this.#handleError(error);
-      throw error;
     }
   }
   async #loadMore() {
-    this.#main.removeMoreButton();
+    if (this.#isLoading) return;
     this.#page += 1;
+    this.#isLoading = true;
     await this.#appendMovies();
+    this.#isLoading = false;
   }
   async #appendMovies() {
-    this.#main.renderSkeletons();
+    this.#main.renderSkeletons(this.#page);
     try {
+      if (this.#page > this.#totalPage) return;
       const response = await fetchPopularMovies(this.#page);
-      this.#main.renderMovies(response.results);
-      if (this.#page < response.total_pages) {
-        this.#main.renderMoreButton(() => this.#loadMore());
-      }
+      this.#totalPage = response.total_pages;
+      this.#main.renderMovies(response.results, this.#page);
       return response;
     } catch (error) {
       this.#handleError(error);
       throw error;
     } finally {
-      this.#main.removeSkeletons();
+      this.#main.removeSkeletons(this.#page);
     }
   }
   #handleError(error) {
@@ -371,6 +531,15 @@ class HomePage {
       dispatchRouteChange(`/search?query=${encodeURIComponent(query)}`);
     }
   };
+  #onDetail = async (movie_id) => {
+    try {
+      console.log(this.#$modal);
+      const movie = await fetchMovieDetails(movie_id);
+      this.#$modal.open(movie);
+    } catch (e) {
+      console.log(e);
+    }
+  };
 }
 class SearchHeader {
   #$element;
@@ -378,30 +547,43 @@ class SearchHeader {
     this.#$element = document.createElement("header");
     this.#$element.innerHTML = `
       <div class="background-container">
-        <div class="top-rated-container"></div>
+        <div class="search-container"></div>
       </div>
     `;
-    $(this.#$element, ".top-rated-container").append(Logo(), SearchForm(onSubmit));
+    const $justLayout = document.createElement("div");
+    $(this.#$element, ".search-container").append(Logo(), SearchForm(onSubmit), $justLayout);
   }
   get $element() {
     return this.#$element;
   }
 }
 class SearchPage {
-  #$fragment;
-  #page = 1;
+  #$div;
+  #page;
+  #totalPage;
   #main;
-  constructor() {
-    this.#$fragment = document.createDocumentFragment();
+  #$modal;
+  #isLoading;
+  constructor(modal) {
+    this.#page = 1;
+    this.#totalPage = 1;
+    this.#$modal = modal;
+    this.#isLoading = false;
     const query = this.#getQuery();
+    this.#$div = document.createElement("div");
+    this.#$div.id = "query";
     const header = new SearchHeader(this.#onSubmit);
-    this.#main = new Main(`"${query}" 검색 결과`);
+    this.#main = new Main(`"${query}" 검색 결과`, this.#onDetail);
     const footer = new Footer();
-    this.#$fragment.append(header.$element, this.#main.$element, footer.$element);
+    this.#$div.append(header.$element, this.#main.$element, footer.$element);
+    window.addEventListener(CUSTOM_EVENT.SCROOL_END, () => {
+      const isPage = window.document.querySelector(`#${query}`);
+      if (isPage) this.#loadMore();
+    });
     this.#initialFetch();
   }
   get $element() {
-    return this.#$fragment;
+    return this.#$div;
   }
   #getQuery() {
     const [, queryString = ""] = window.location.hash.split("?");
@@ -416,28 +598,29 @@ class SearchPage {
     }
   }
   async #loadMore() {
-    this.#main.removeMoreButton();
+    if (this.#isLoading) return;
     this.#page += 1;
+    this.#isLoading = true;
     await this.#appendMovies();
+    this.#isLoading = false;
   }
   async #appendMovies() {
-    this.#main.renderSkeletons();
+    this.#main.renderSkeletons(this.#page);
     try {
+      if (this.#page > this.#totalPage) return;
       const response = await fetchSearchMovies(this.#getQuery(), this.#page);
+      this.#totalPage = response.total_pages;
       if (response.results.length === 0) {
         this.#main.renderNothing();
         return response;
       }
-      this.#main.renderMovies(response.results);
-      if (this.#page < response.total_pages) {
-        this.#main.renderMoreButton(() => this.#loadMore());
-      }
+      this.#main.renderMovies(response.results, this.#page);
       return response;
     } catch (error) {
       this.#handleError(error);
       throw error;
     } finally {
-      this.#main.removeSkeletons();
+      this.#main.removeSkeletons(this.#page);
     }
   }
   #handleError(error) {
@@ -456,31 +639,58 @@ class SearchPage {
       dispatchRouteChange(`/search?query=${encodeURIComponent(query)}`);
     }
   };
+  #onDetail = async (movie_id) => {
+    try {
+      console.log(this.#$modal);
+      const movie = await fetchMovieDetails(movie_id);
+      this.#$modal.open(movie);
+    } catch (e) {
+      console.log(e);
+    }
+  };
 }
 const routes = [
   { path: "/", view: HomePage },
   { path: "/search", view: SearchPage }
 ];
-const router = () => {
+const PAGE_CACHE = /* @__PURE__ */ new Map();
+const router = (modal) => {
   const $app = document.querySelector("#app");
   if (!$app) return;
   $app.innerHTML = "";
   const fullHash = location.hash.replace("#", "") || "/";
-  const [path, queryString] = fullHash.split("?");
+  const [path] = fullHash.split("?");
   const match = routes.find((route) => route.path === path);
   const View = match ? match.view : HomePage;
-  const page = new View();
-  $app.replaceChildren(page.$element);
+  const fullpath = match ? fullHash : "/";
+  const cachedPage = PAGE_CACHE.get(fullpath);
+  if (cachedPage !== void 0) {
+    $app.append(cachedPage.$element);
+    return;
+  }
+  const newPage = new View(modal);
+  $app.append(newPage.$element);
+  PAGE_CACHE.set(fullpath, newPage);
 };
 const navigateTo = (url) => {
   location.hash = url;
 };
-window.addEventListener(ROUTE_CHANGE_EVENT, (e) => {
+window.addEventListener(CUSTOM_EVENT.ROUTE_CHANGE, (e) => {
   const customEvent = e;
   const { url } = customEvent.detail;
   navigateTo(url);
 });
+window.addEventListener("scroll", () => {
+  const isScrollEnded = window.innerHeight + window.scrollY + 400 >= document.body.offsetHeight;
+  if (isScrollEnded) {
+    scrollEvent();
+  }
+});
 addEventListener("load", () => {
-  window.addEventListener("hashchange", router);
-  router();
+  const $body = document.querySelector("body");
+  if (!$body) return;
+  const modal = new Modal($body);
+  $body.append(modal.$element);
+  window.addEventListener("hashchange", () => router(modal));
+  router(modal);
 });

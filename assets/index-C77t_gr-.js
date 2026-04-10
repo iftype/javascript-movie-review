@@ -43,19 +43,6 @@ const getOriginalImageUrl = (src) => {
 const getThumbnailImageUrl = (src) => {
   return URL.THUMBNAIL_IMAGE + src;
 };
-class LocalStorage {
-  #myStorage;
-  constructor() {
-    this.#myStorage = window.localStorage;
-  }
-  saveRate(key, value) {
-    this.#myStorage.setItem(key, value);
-  }
-  getRate(key) {
-    return this.#myStorage.getItem(key);
-  }
-}
-const localStorage = new LocalStorage();
 const $ = (el, selector) => {
   const found = el.querySelector(selector);
   if (!found) throw new Error(`${selector} 없음`);
@@ -109,9 +96,11 @@ class SubmitRate {
   };
 }
 class Modal {
+  #movieRepo;
   #$modal;
   #$body;
-  constructor($body) {
+  constructor(movieRepo, $body) {
+    this.#movieRepo = movieRepo;
     this.#$body = $body;
     this.#$modal = document.createElement("div");
     this.#$modal.id = "modalBackground";
@@ -166,9 +155,9 @@ class Modal {
     this.#$modal.classList.add("active");
     this.#update(movie);
     const { id } = movie;
-    const movieRate = Number(localStorage.getRate(`${id}`)) || 0;
+    const movieRate = Number(this.#movieRepo.getRate(`${id}`)) || 0;
     const $submitRate = new SubmitRate(movieRate, (rate) => {
-      localStorage.saveRate(`${id}`, String(rate));
+      this.#movieRepo.saveRate(`${id}`, String(rate));
     }).$element;
     const $container = $(this.#$modal, ".modal-submit-star");
     const $oldCon = $container.querySelector(".submit-rate-container");
@@ -649,6 +638,30 @@ class SearchPage {
     }
   };
 }
+class LocalStorage {
+  #myStorage;
+  constructor() {
+    this.#myStorage = window.localStorage;
+  }
+  save(key, value) {
+    this.#myStorage.setItem(key, value);
+  }
+  get(key) {
+    return this.#myStorage.getItem(key);
+  }
+}
+class MovieRepository {
+  #db;
+  constructor(db) {
+    this.#db = db;
+  }
+  saveRate(key, value) {
+    return this.#db.save(key, value);
+  }
+  getRate(key) {
+    return this.#db.get(key);
+  }
+}
 const routes = [
   { path: "/", view: HomePage },
   { path: "/search", view: SearchPage }
@@ -689,7 +702,9 @@ window.addEventListener("scroll", () => {
 addEventListener("load", () => {
   const $body = document.querySelector("body");
   if (!$body) return;
-  const modal = new Modal($body);
+  const db = new LocalStorage();
+  const movieRepo = new MovieRepository(db);
+  const modal = new Modal(movieRepo, $body);
   $body.append(modal.$element);
   window.addEventListener("hashchange", () => router(modal));
   router(modal);

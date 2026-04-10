@@ -526,11 +526,9 @@ class HomePage {
   };
   #onDetail = async (movie_id) => {
     try {
-      console.log(this.#$modal);
       const movie = await fetchMovieDetails(movie_id);
       this.#$modal.open(movie);
     } catch (e) {
-      console.log(e);
     }
   };
 }

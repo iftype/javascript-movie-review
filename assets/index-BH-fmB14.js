@@ -156,14 +156,14 @@ class Modal {
     $score.textContent = `평균 ${Number(vote_average).toFixed(1)}`;
     $rateContainer.append($starIcon, $score);
   }
-  open(movie) {
+  async open(movie) {
     this.#$body.className = "modal-open";
     this.#$modal.classList.add("active");
     this.#update(movie);
     const { id } = movie;
-    const movieRate = Number(this.#movieRepo.getRate(`${id}`)) || 0;
-    const $submitRate = new SubmitRate(movieRate, (rate) => {
-      this.#movieRepo.saveRate(`${id}`, String(rate));
+    const movieRate = Number(await this.#movieRepo.getRate(`${id}`)) || 0;
+    const $submitRate = new SubmitRate(movieRate, async (rate) => {
+      await this.#movieRepo.saveRate(`${id}`, String(rate));
     }).$element;
     const $container = $(this.#$modal, ".modal-submit-star");
     const $oldCon = $container.querySelector(".submit-rate-container");
@@ -643,10 +643,10 @@ class LocalStorage {
   constructor() {
     this.#myStorage = window.localStorage;
   }
-  save(key, value) {
+  async save(key, value) {
     this.#myStorage.setItem(key, value);
   }
-  get(key) {
+  async get(key) {
     return this.#myStorage.getItem(key);
   }
 }
@@ -655,10 +655,10 @@ class MovieRepository {
   constructor(db) {
     this.#db = db;
   }
-  saveRate(key, value) {
+  async saveRate(key, value) {
     return this.#db.save(key, value);
   }
-  getRate(key) {
+  async getRate(key) {
     return this.#db.get(key);
   }
 }

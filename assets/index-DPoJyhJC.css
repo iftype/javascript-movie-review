@@ -239,7 +239,6 @@ button.primary {
 .top-rated-container,
 .search-container {
   display: grid;
-
   user-select: none;
   position: relative;
   z-index: 2;
@@ -317,10 +316,8 @@ span.rate-value {
   display: flex;
   justify-content: space-between;
   align-items: center;
-
   width: 525px;
   height: 36px;
-
   border: 2px solid var(--color-ffffff);
   border-radius: 32px;
   outline: none;
@@ -457,7 +454,7 @@ form {
   .search-container {
     display: flex;
     flex-direction: column;
-    justify-items: center;
+    justify-content: center;
     align-items: center;
   }
 }
@@ -528,7 +525,6 @@ form {
 .thumbnail-list {
   display: grid;
   justify-content: center;
-
   width: 100%;
   margin: 0 auto 56px;
   grid-template-columns: repeat(auto-fit, 200px);
@@ -704,9 +700,8 @@ body.modal-open {
     border-radius: 16px;
   }
   .modal-container {
-    padding: 40 24;
+    padding: 40px 24px;
     gap: 10px;
-
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -721,12 +716,11 @@ body.modal-open {
 @media (max-width: 390px) {
   .modal {
     top: 20px;
-    border-radius: 0;
     bottom: 0;
-    width: 800px;
     gap: 24px;
     opacity: 1;
     padding: 40px 24px;
+    width: 390px;
     border-radius: 16px;
   }
 

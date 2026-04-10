@@ -37,10 +37,13 @@ const PATH = {
   SEARCH_MOVIE: "/search/movie",
   MOVIE_DETAIL: (movie_id) => `/movie/${movie_id}`
 };
+const PLACEHOLDER = "./images/empty.png";
 const getOriginalImageUrl = (src) => {
+  if (!src) return PLACEHOLDER;
   return URL.ORIGINAL_IMAGE + src;
 };
 const getThumbnailImageUrl = (src) => {
+  if (!src) return PLACEHOLDER;
   return URL.THUMBNAIL_IMAGE + src;
 };
 const $ = (el, selector) => {
@@ -431,7 +434,7 @@ const fetchMovieDetails = (movie_id) => {
 };
 const CUSTOM_EVENT = {
   ROUTE_CHANGE: "ROUTE_CHANGE",
-  SCROOL_END: "SCROOL_END"
+  SCROLL_END: "SCROLL_END"
 };
 const dispatchRouteChange = (url) => {
   window.dispatchEvent(new CustomEvent(CUSTOM_EVENT.ROUTE_CHANGE, { detail: { url } }));
@@ -443,7 +446,7 @@ const throttle = {
 const scrollEvent = () => {
   if (throttle.timer) return;
   throttle.timer = setTimeout(() => {
-    window.dispatchEvent(new CustomEvent(CUSTOM_EVENT.SCROOL_END));
+    window.dispatchEvent(new CustomEvent(CUSTOM_EVENT.SCROLL_END));
     throttle.timer = null;
   }, throttle.delay);
 };
@@ -467,7 +470,7 @@ class HomePage {
     this.#main = new Main("지금 인기있는 영화", this.#onDetail);
     this.#footer = new Footer();
     this.#$div.append(this.#header.$element, this.#main.$element, this.#footer.$element);
-    window.addEventListener(CUSTOM_EVENT.SCROOL_END, () => {
+    window.addEventListener(CUSTOM_EVENT.SCROLL_END, () => {
       const isPage = window.document.querySelector("#homepage");
       if (isPage) this.#loadMore();
     });
@@ -562,12 +565,12 @@ class SearchPage {
     this.#isLoading = false;
     const query = this.#getQuery();
     this.#$div = document.createElement("div");
-    this.#$div.id = "query";
+    this.#$div.id = `${query}`;
     const header = new SearchHeader(this.#onSubmit);
     this.#main = new Main(`"${query}" 검색 결과`, this.#onDetail);
     const footer = new Footer();
     this.#$div.append(header.$element, this.#main.$element, footer.$element);
-    window.addEventListener(CUSTOM_EVENT.SCROOL_END, () => {
+    window.addEventListener(CUSTOM_EVENT.SCROLL_END, () => {
       const isPage = window.document.querySelector(`#${query}`);
       if (isPage) this.#loadMore();
     });

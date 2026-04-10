@@ -131,6 +131,11 @@ class Modal {
       </div>
     `;
     $(this.#$modal, "button").addEventListener("click", () => this.close());
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        this.close();
+      }
+    });
   }
   get $element() {
     return this.#$modal;
@@ -139,7 +144,8 @@ class Modal {
     const { title, release_date, overview, poster_path, genres, vote_average } = movie;
     $(this.#$modal, ".modal-image img").src = getOriginalImageUrl(poster_path);
     $(this.#$modal, "h2").textContent = title;
-    $(this.#$modal, ".detail").textContent = overview;
+    const overViewString = overview ? overview : "줄거리 데이터가 없습니다";
+    $(this.#$modal, ".detail").textContent = overViewString;
     const releaseYear = new Date(release_date).getFullYear();
     const category = genres.map((g) => g.name).join(" ");
     $(this.#$modal, ".category").textContent = `${releaseYear} · ${category}`;
@@ -165,7 +171,6 @@ class Modal {
     $container.append($submitRate);
   }
   close() {
-    console.log("object");
     this.#$body.classList.remove("modal-open");
     this.#$modal.classList.remove("active");
   }
@@ -399,7 +404,6 @@ const fetchAPI = async (req) => {
   if (query) params.set("query", query);
   if (page) params.set("page", String(page));
   const resultUrl = url + "?" + params.toString();
-  console.log(resultUrl);
   const response = await fetch(resultUrl, options);
   const data = await response.json();
   if (!response.ok) {
@@ -630,11 +634,9 @@ class SearchPage {
   };
   #onDetail = async (movie_id) => {
     try {
-      console.log(this.#$modal);
       const movie = await fetchMovieDetails(movie_id);
       this.#$modal.open(movie);
     } catch (e) {
-      console.log(e);
     }
   };
 }

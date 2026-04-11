@@ -254,12 +254,22 @@ class TopRateHeader {
     $(this.#$element, ".top-rated-container").append(TopRate(data));
   }
 }
-const Error$1 = (message = "에러가 났습니다") => {
+class TMDBError extends Error {
+  code;
+  success;
+  constructor({ status_code, status_message, success }) {
+    super(status_message);
+    this.code = status_code;
+    this.success = success;
+  }
+}
+const ErrorComponent = (error) => {
   const $div = document.createElement("div");
+  const infoMessage = error instanceof TMDBError ? "TMDB 에러" : "예상치못한 에러";
   $div.className = "nothing";
   $div.innerHTML = `
     <img src="./images/empty.png" alt="nothing" />
-    <p> ${message}</p>
+    <p>${infoMessage}</p>
   `;
   return $div;
 };
@@ -351,16 +361,16 @@ class Main {
     this.#$skeletons.set(String(page), $newSkeletons);
   }
   removeSkeletons(page) {
-    if (!this.#$skeletons.has(String(page))) {
+    const $skeletonList = this.#$skeletons.get(String(page));
+    if (!$skeletonList) {
       return;
     }
-    const $skeletonList = this.#$skeletons.get(String(page));
-    $skeletonList?.forEach(($skeleton) => $skeleton.remove());
+    $skeletonList.forEach(($skeleton) => $skeleton.remove());
   }
-  renderError(messsage) {
+  handleError(error) {
     const $element = $(this.#$element, "section");
     $element.innerHTML = "";
-    $element.append(Error$1(messsage));
+    $element.append(ErrorComponent(error));
   }
   renderNothing() {
     const $element = $(this.#$element, "section");
@@ -381,15 +391,6 @@ class Footer {
   }
   get $element() {
     return this.#$element;
-  }
-}
-class TMDBError extends Error {
-  code;
-  success;
-  constructor({ status_code, status_message, success }) {
-    super(status_message);
-    this.code = status_code;
-    this.success = success;
   }
 }
 const API_KEY = "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIwN2FhNDEzMTFjYjBjYmVkYmFmZTFiZjI1ZjdhMjhlMyIsIm5iZiI6MTc3NDg1NTE3OC45OTUwMDAxLCJzdWIiOiI2OWNhMjQwYTVhYzgwNDIyMzk4YWE3MzIiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.0xVetrHAobzs4CBOIbw98YQ0VyLSwCBZKRVQYj59lI8";
@@ -491,6 +492,7 @@ class HomePage {
   }
   async #loadMore() {
     if (this.#isLoading) return;
+    this.#main.removeSkeletons(this.#page);
     this.#page += 1;
     this.#isLoading = true;
     await this.#appendMovies();
@@ -512,15 +514,7 @@ class HomePage {
     }
   }
   #handleError(error) {
-    if (error instanceof TMDBError) {
-      this.#main.renderError(`TMDB 에러: ${error.message}`);
-      return;
-    }
-    if (error instanceof Error) {
-      this.#main.renderError(`시스템 에러: ${error.message}`);
-      return;
-    }
-    this.#main.renderError("알 수 없는 에러가 발생했습니다.");
+    this.#main.handleError(error);
   }
   #onSubmit = (query) => {
     if (query.trim()) {
@@ -553,10 +547,10 @@ class SearchHeader {
 }
 class SearchPage {
   #$div;
-  #page;
-  #totalPage;
   #main;
   #$modal;
+  #totalPage;
+  #page;
   #isLoading;
   constructor(modal) {
     this.#page = 1;
@@ -593,6 +587,7 @@ class SearchPage {
   }
   async #loadMore() {
     if (this.#isLoading) return;
+    this.#main.removeSkeletons(this.#page);
     this.#page += 1;
     this.#isLoading = true;
     await this.#appendMovies();
@@ -618,15 +613,7 @@ class SearchPage {
     }
   }
   #handleError(error) {
-    if (error instanceof TMDBError) {
-      this.#main.renderError(`TMDB 에러: ${error.message}`);
-      return;
-    }
-    if (error instanceof Error) {
-      this.#main.renderError(`시스템 에러: ${error.message}`);
-      return;
-    }
-    this.#main.renderError("알 수 없는 에러가 발생했습니다.");
+    this.#main.handleError(error);
   }
   #onSubmit = (query) => {
     if (query.trim()) {

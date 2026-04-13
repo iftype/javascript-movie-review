@@ -298,9 +298,9 @@ class Modal {
     this.#$modal.classList.add("active");
     this.#update(movie);
     const { id } = movie;
-    const movieRate = Number(await this.#movieStore.get(`${id}`)) || 0;
+    const movieRate = Number(await this.#movieStore.get(id)) || 0;
     const $submitRate = new SubmitRate(movieRate, async (rate) => {
-      await this.#movieStore.save(`${id}`, String(rate));
+      await this.#movieStore.save(id, rate);
     }).$element;
     const $container = $(this.#$modal, ".modal-submit-star");
     const $oldCon = $container.querySelector(".submit-rate-container");
@@ -313,18 +313,6 @@ class Modal {
   close() {
     this.#$body.classList.remove("modal-open");
     this.#$modal.classList.remove("active");
-  }
-}
-class LocalStorage {
-  #myStorage;
-  constructor() {
-    this.#myStorage = window.localStorage;
-  }
-  async save(key, value) {
-    this.#myStorage.setItem(key, value);
-  }
-  async get(key) {
-    return this.#myStorage.getItem(key);
   }
 }
 const Logo = () => {
@@ -445,7 +433,7 @@ class MoviePage {
     this.#$header = new Header(option.onSubmit.bind(this), this.#onDetail.bind(this));
     const title = option.type === "home" ? "지금 인기있는 영화" : `"${option.query}" 검색 결과`;
     this.#$main = new Main(title, this.#onDetail.bind(this));
-    this.#$modal = new Modal(new LocalStorage(), this.#$div);
+    this.#$modal = new Modal(option.movieDB, this.#$div);
     const footer = new Footer();
     this.#$div.append(this.#$header.$element, this.#$main.$element, footer.$element, this.#$modal.$element);
     this.#observer = new IntersectionObserver(
@@ -566,37 +554,52 @@ const onSubmit = (query) => {
     location.hash = `/search?query=${encodeURIComponent(query)}`;
   }
 };
-const createHomePage = () => {
+const createHomePage = (movieDB) => {
   return new MoviePage({
     type: "home",
     fetchMovie: (page) => fetchPopularMovies(page),
     fetchDetail: (movie_id) => fetchMovieDetails(movie_id),
-    onSubmit
+    onSubmit,
+    movieDB
   });
 };
-const createSearchPage = (query) => {
+const createSearchPage = (query, movieDB) => {
   return new MoviePage({
     type: "search",
     fetchMovie: (page) => fetchSearchMovies(query, page),
     fetchDetail: (movie_id) => fetchMovieDetails(movie_id),
     onSubmit,
-    query
+    query,
+    movieDB
   });
 };
-const router = () => {
+const router = (movieDB) => {
   const $app = document.querySelector("#app");
   if (!$app) return;
   const fullHash = location.hash.replace("#", "") || "/";
   const [path, queryString] = fullHash.split("?");
   const query = new URLSearchParams(queryString).get("query") ?? "";
   $app.innerHTML = "";
-  const newPage = path === "/search" ? createSearchPage(query) : createHomePage();
+  const newPage = path === "/search" ? createSearchPage(query, movieDB) : createHomePage(movieDB);
   $app.append(newPage.$element);
 };
+class LocalStorage {
+  #myStorage;
+  constructor() {
+    this.#myStorage = window.localStorage;
+  }
+  async save(key, value) {
+    this.#myStorage.setItem(String(key), String(value));
+  }
+  async get(key) {
+    return this.#myStorage.getItem(String(key));
+  }
+}
 window.addEventListener("load", () => {
   const $body = document.querySelector("body");
   if (!$body) return;
+  const movieDB = new LocalStorage();
   $body.append();
-  window.addEventListener("hashchange", () => router());
-  router();
+  window.addEventListener("hashchange", () => router(movieDB));
+  router(movieDB);
 });
